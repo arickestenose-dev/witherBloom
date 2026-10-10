@@ -9,6 +9,11 @@ jobs:
         run: |
           f=$(ls *.zip *.jar 2>/dev/null | head -1)
           unzip -q "$f" -d proj
+      - name: Arreglar import faltante
+        run: |
+          g=$(find proj -name GeneratedModels.java | head -1)
+          grep -q "model.geom.PartPose;" "$g" || sed -i 's|^import net.minecraft.client.model.geom.builders.\*;|import net.minecraft.client.model.geom.PartPose;\nimport net.minecraft.client.model.geom.builders.*;|' "$g"
+          grep -n "^import" "$g"
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: 17 }
       - uses: gradle/actions/setup-gradle@v4
