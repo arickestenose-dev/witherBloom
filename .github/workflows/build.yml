@@ -5,21 +5,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Descomprimir
+      - name: Descomprimir y localizar proyecto
         run: |
           f=$(ls *.zip *.jar 2>/dev/null | head -1)
+          echo "Usando: $f"
           unzip -q "$f" -d proj
-      - name: Arreglar import faltante
+          g=$(find proj -name build.gradle -not -path "*/node_modules/*" | head -1)
+          d=$(dirname "$g")
+          echo "PROJECT_DIR=$d" >> "$GITHUB_ENV"
+          echo "Proyecto en: $d"
+      - name: Arreglar import faltante (si aplica)
         run: |
           g=$(find proj -name GeneratedModels.java | head -1)
-          grep -q "model.geom.PartPose;" "$g" || sed -i 's|^import net.minecraft.client.model.geom.builders.\*;|import net.minecraft.client.model.geom.PartPose;\nimport net.minecraft.client.model.geom.builders.*;|' "$g"
-          grep -n "^import" "$g"
+          if [ -n "$g" ] && ! grep -q "model.geom.PartPose;" "$g"; then
+            sed -i 's|^import net.minecraft.client.model.geom.builders.\*;|import net.minecraft.client.model.geom.PartPose;\nimport net.minecraft.client.model.geom.builders.*;|' "$g"
+          fi
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: 17 }
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: 8.8 }
       - name: Compilar
-        working-directory: proj
+        working-directory: ${{ env.PROJECT_DIR }}
         run: gradle build
       - uses: actions/upload-artifact@v4
-        with: { name: mod, path: proj/build/libs/*.jar }
+        with: { name: mod, path: "${{ env.PROJECT_DIR }}/build/libs/*.jar" }
