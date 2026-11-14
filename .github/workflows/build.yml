@@ -7,27 +7,35 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Descomprimir
+        run: unzip -q -o witherbloom-fase*.zip
+
+      - name: Corregir MobDef
         run: |
-          ls -la
-          unzip -q -o witherbloom-fase*.zip
-          ls -la witherbloom
+          sed -i 's/^    record MobDef(/    public record MobDef(/' witherbloom/src/main/java/com/witherbloom/infection/Infection.java
+          sed -i 's/^    enum Mode/    public enum Mode/' witherbloom/src/main/java/com/witherbloom/infection/Infection.java
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
+
       - uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: 8.1.1
+
       - name: Compilar
         working-directory: witherbloom
-        run: gradle build --no-daemon --stacktrace 2>&1 | tee ../build-log.txt; exit ${PIPESTATUS[0]}
+        run: gradle build --no-daemon 2>&1 | tee ../build-log.txt; exit ${PIPESTATUS[0]}
+
       - name: Guardar el log
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: build-log
           path: build-log.txt
+
       - name: Guardar el jar
         uses: actions/upload-artifact@v4
         with:
