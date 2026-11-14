@@ -1,31 +1,26 @@
-name: build
-on: [push, workflow_dispatch]
+name: Compilar mod
+on:
+  push:
+  workflow_dispatch:
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Descomprimir y localizar proyecto
-        run: |
-          f=$(ls *.zip *.jar 2>/dev/null | head -1)
-          echo "Usando: $f"
-          unzip -q "$f" -d proj
-          g=$(find proj -name build.gradle -not -path "*/node_modules/*" | head -1)
-          d=$(dirname "$g")
-          echo "PROJECT_DIR=$d" >> "$GITHUB_ENV"
-          echo "Proyecto en: $d"
-      - name: Arreglar import faltante (si aplica)
-        run: |
-          g=$(find proj -name GeneratedModels.java | head -1)
-          if [ -n "$g" ] && ! grep -q "model.geom.PartPose;" "$g"; then
-            sed -i 's|^import net.minecraft.client.model.geom.builders.\*;|import net.minecraft.client.model.geom.PartPose;\nimport net.minecraft.client.model.geom.builders.*;|' "$g"
-          fi
+      - name: Descomprimir
+        run: unzip -q witherbloom-fase1.zip
       - uses: actions/setup-java@v4
-        with: { distribution: temurin, java-version: 17 }
-      - uses: gradle/actions/setup-gradle@v4
-        with: { gradle-version: 8.8 }
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: 8.1.1
       - name: Compilar
-        working-directory: ${{ env.PROJECT_DIR }}
-        run: gradle build
-      - uses: actions/upload-artifact@v4
-        with: { name: mod, path: "${{ env.PROJECT_DIR }}/build/libs/*.jar" }
+        working-directory: witherbloom
+        run: gradle build --no-daemon
+      - name: Guardar el jar
+        uses: actions/upload-artifact@v4
+        with:
+          name: mod-jar
+          path: witherbloom/build/libs/*.jar
